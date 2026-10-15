@@ -13,7 +13,7 @@ Semua keputusan metodologi mengikuti `CLAUDE.md`.
   `environment.yml`, dan `README.md` singkat.
 - Buat `config/config.yaml` berisi: `gee_project`, `aoi_bbox`, `year`, `crs` (EPSG:32749), `scale` (10),
   semua ID dataset dari `CLAUDE.md`, `bands` (19 kanal berurutan sesuai tabel di `CLAUDE.md`), `smoke_bbox`,
-  ambang `cs_cdf` (0.60), `patch_size` (256), `block_size_m` (5000),
+  ambang `cs_cdf` (0.60), nilai `nodata` ekspor, `patch_size` (256), `block_size_m` (5120 = 2 × 2 patch),
   rasio split (0.70/0.15/0.15), `seed`, bobot loss `lambdas` (1, 1, 1), `peat_cd_kgc_m3` (61.6), dan
   `peat_classes`: kode kelas → kedalaman rendah/tengah/tinggi (m). Isi awal memakai skema kelas Kementan yang
   dipakai Warren et al. (2017): <50 cm / bukan gambut → kelas 0, kedalaman 0; 50–100 cm → 0.5/0.75/1.0;
@@ -103,7 +103,8 @@ Cek kuota Drive dan pertimbangkan int16.
 
 **Tugas**
 - `src/datasets/make_patches.py`: potong stack dan label menjadi patch 256 × 256 (stride 256).
-- Bagi AOI ke blok persegi (default 5 km). Acak blok dengan seed tetap ke train/val/test 70/15/15.
+- Bagi AOI ke blok persegi (default 5120 m = 2 × 2 patch, supaya tidak ada patch yang memotong batas blok;
+  lihat `scripts/check_block_alignment.py`). Acak blok dengan seed tetap ke train/val/test 70/15/15.
   Setiap patch ikut split dari blok tempat pusatnya berada; buang patch yang memotong batas dua split.
 - Hitung normalisasi per band (mean/std) **hanya dari train** → `outputs/norm_stats.json`.
 - `src/datasets/dataset.py`: PyTorch Dataset yang mengembalikan input, label tinggi, label AGB, mask GEDI,
