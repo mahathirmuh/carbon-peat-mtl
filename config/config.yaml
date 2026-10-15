@@ -1,0 +1,90 @@
+# Project configuration: single source of truth for every script (read via src/config.py).
+# Values come from CLAUDE.md and PLAN.md. Change methodology-related values only after discussion.
+
+# --- Earth Engine & export ---------------------------------------------------
+gee_project: TODO        # Google Cloud project ID registered for Earth Engine
+drive_folder: TODO       # Google Drive folder that receives GEE exports
+
+# --- Area, time, grid --------------------------------------------------------
+aoi_bbox: [112.8, -3.4, 113.5, -2.3]        # [lon_min, lat_min, lon_max, lat_max]; Katingan-Mentaya, ~77 x 122 km
+smoke_bbox: [113.10, -2.90, 113.20, -2.80]  # ~11 x 11 km smoke-test window (same as the ETS slide window)
+year: 2020
+crs: EPSG:32749          # UTM zone 49S
+scale: 10                # metres per pixel
+
+# --- Datasets (IDs verified in the GEE catalog, see CLAUDE.md) ---------------
+datasets:
+  gedi_l4a: LARSE/GEDI/GEDI04_A_002_MONTHLY      # Head 2 label: agbd (Mg/ha)
+  gedi_l2a: LARSE/GEDI/GEDI02_A_002_MONTHLY      # Head 1 label: rh98 (m)
+  gedi_l4b: LARSE/GEDI/GEDI04_B_002              # consistency check only (1 km grid)
+  s2_sr: COPERNICUS/S2_SR_HARMONIZED
+  cloud_score_plus: GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED
+  s1_grd: COPERNICUS/S1_GRD
+  palsar2_yearly: JAXA/ALOS/PALSAR/YEARLY/SAR_EPOCH
+  dem: COPERNICUS/DEM/GLO30_2024_1
+  eth_canopy_height: users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1   # comparison only, NEVER an input
+  peatgrids_thickness: projects/sat-io/open-datasets/PEATGRIDS/THICKNESS_CM
+  peatgrids_c_stock: projects/sat-io/open-datasets/PEATGRIDS/C_STOCK_MGC_PER_M2
+  esa_worldcover: ESA/WorldCover/v100            # fallback strata while the KLHK map is missing
+  gaul_level2: FAO/GAUL/2015/level2              # optional district boundaries
+
+# Uploaded GEE assets (fill in after upload)
+assets:
+  kementan_peat: TODO    # Peta Lahan Gambut Indonesia 1:50.000 (Kementan, 2019) -> Head 3 label
+  klhk_landcover: TODO   # Peta Penutupan Lahan KLHK 2020 -> analysis strata
+
+# --- Input stack: 19 channels, fixed order ------------------------------------
+# Changing order or count invalidates norm_stats.json and every trained model.
+bands:
+  - B2                   # 1-6   Sentinel-2 reflectance (0-1)
+  - B3
+  - B4
+  - B8
+  - B11
+  - B12
+  - NDVI                 # 7-8   Sentinel-2 indices
+  - EVI
+  - B8_contrast          # 9-11  GLCM texture of NIR (B8)
+  - B8_ent
+  - B8_var
+  - VV                   # 12-14 Sentinel-1 (dB)
+  - VH
+  - VH_minus_VV
+  - HH_dB                # 15-16 PALSAR-2 gamma0 (dB)
+  - HV_dB
+  - elevation            # 17-19 Copernicus DEM (DSM)
+  - elevation_lowpass
+  - slope
+
+# --- Preprocessing & export ---------------------------------------------------
+cs_cdf_threshold: 0.60   # Cloud Score+ clear-sky threshold for Sentinel-2
+nodata:                  # applied with unmask() before every export; masked pixels must never become 0
+  float32: -9999.0
+  int16: -32768
+
+# --- Patches & spatial split --------------------------------------------------
+patch_size: 256          # pixels (2560 m at 10 m)
+block_size_m: 5120       # 2 x 2 patches, so no patch straddles two blocks
+split_ratios: {train: 0.70, val: 0.15, test: 0.15}
+seed: 42
+
+# --- Loss ---------------------------------------------------------------------
+lambdas: {height: 1.0, agb: 1.0, peat: 1.0}   # L = l1 * L_height + l2 * L_agb + l3 * L_peat
+
+# --- Carbon conversion --------------------------------------------------------
+agc_fraction: 0.47       # AGC = AGB x 0.47 (IPCC)
+peat_cd_kgc_m3: 61.6     # carbon density BD x C-org, Central Kalimantan (Warren et al., 2017, Table 1)
+
+# --- Peat depth classes (Head 3) ----------------------------------------------
+temporary_labels: true   # Head 3 labels are classified PEATGRIDS; PEATGRIDS is then NOT an SOC comparison
+peat_ignore_index: 255   # label value for nodata, ignored by the cross-entropy loss
+# Kementan class scheme as used by Warren et al. (2017); class k covers [min_cm, max_cm).
+# depth_m: low = lower bound, mid = class centre, high = upper bound (metres).
+# Adjust to the Kementan 2019 scheme when the map arrives.
+peat_classes:
+  0: {name: non_peat,  min_cm: 0,   max_cm: 50,   depth_m: {low: 0.0, mid: 0.0,  high: 0.0}}   # < 50 cm / not peat
+  1: {name: d050_100,  min_cm: 50,  max_cm: 100,  depth_m: {low: 0.5, mid: 0.75, high: 1.0}}
+  2: {name: d100_200,  min_cm: 100, max_cm: 200,  depth_m: {low: 1.0, mid: 1.5,  high: 2.0}}
+  3: {name: d200_300,  min_cm: 200, max_cm: 300,  depth_m: {low: 2.0, mid: 2.5,  high: 3.0}}
+  # TODO: verify mid 7.5 m against Warren et al. (2017); the midpoint of 3-10 m would be 6.5 m
+  4: {name: d300_plus, min_cm: 300, max_cm: null, depth_m: {low: 3.0, mid: 7.5,  high: 10.0}}
