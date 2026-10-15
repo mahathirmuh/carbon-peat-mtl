@@ -5,8 +5,9 @@ filters come from gee/sources.py. Coarser inputs (Sentinel-2 20 m bands, PALSAR-
 interpolated bilinearly onto the 10 m grid. Masked pixels are written as the float32 nodata value.
 
 Usage:
-  python gee/build_features.py --region smoke        # small test export (~0.1 GB)
-  python gee/build_features.py --region aoi --yes    # full AOI (~7 GB), only after confirmation
+  python gee/build_features.py --region smoke             # small test export (~0.1 GB)
+  python gee/build_features.py --region smoke --download  # same image straight into data/raw/ (no Drive)
+  python gee/build_features.py --region aoi --yes         # full AOI (~7 GB), only after confirmation
 """
 from __future__ import annotations
 
@@ -78,11 +79,16 @@ def feature_stack(cfg: dict, region: ee.Geometry) -> ee.Image:
     return stack.select(cfg["bands"]).toFloat()
 
 
+def export_image(cfg: dict, stack: ee.Image) -> ee.Image:
+    """The image as written to file: masked pixels become the float32 nodata value."""
+    # cast again after unmask: a double constant would promote the image to float64
+    return stack.unmask(cfg["nodata"]["float32"]).toFloat()
+
+
 def start_export(cfg: dict, image: ee.Image, grid: Grid, name: str) -> ee.batch.Task:
-    """Drive export on exactly `grid` (crs + crsTransform + dimensions); masked pixels become nodata."""
-    nodata = cfg["nodata"]["float32"]
+    """Drive export of `image` on exactly `grid` (crs + crsTransform + dimensions)."""
     task = ee.batch.Export.image.toDrive(
-        image=image.unmask(nodata).toFloat(),  # cast again: unmask with a double constant would promote to float64
+        image=image,
         description=name,
         folder=cfg["drive_folder"],
         fileNamePrefix=name,
@@ -92,10 +98,36 @@ def start_export(cfg: dict, image: ee.Image, grid: Grid, name: str) -> ee.batch.
         maxPixels=1e13,
         fileDimensions=cfg["export_tile_px"],
         fileFormat="GeoTIFF",
-        formatOptions={"noData": nodata},
+        formatOptions={"noData": cfg["nodata"]["float32"]},
     )
     task.start()
     return task
+
+
+def download_tiles(image: ee.Image, grid: Grid, out_dir: Path, tile_px: int = 512) -> list[Path]:
+    """Fetch `image` on `grid` straight from Earth Engine as GeoTIFF tiles, without going through Drive.
+
+    Meant for the smoke window: each request (512 x 512 px x 19 bands float32, about 20 MB) stays below the
+    computePixels size limit.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for row in range(0, grid.height, tile_px):
+        for col in range(0, grid.width, tile_px):
+            width, height = min(tile_px, grid.width - col), min(tile_px, grid.height - row)
+            transform = {"scaleX": grid.scale, "shearX": 0, "translateX": grid.x0 + col * grid.scale,
+                         "shearY": 0, "scaleY": -grid.scale, "translateY": grid.y0 - row * grid.scale}
+            data = ee.data.computePixels({
+                "expression": image,
+                "fileFormat": "GEO_TIFF",
+                "grid": {"dimensions": {"width": width, "height": height},
+                         "affineTransform": transform, "crsCode": grid.crs},
+            })
+            path = out_dir / f"tile-r{row:05d}-c{col:05d}.tif"
+            path.write_bytes(data)
+            paths.append(path)
+            print(f"  saved {path.relative_to(ROOT)}", flush=True)
+    return paths
 
 
 def wait_for(task: ee.batch.Task, poll_s: int = 30) -> dict:
@@ -117,7 +149,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--region", choices=("smoke", "aoi"), default="smoke")
     parser.add_argument("--yes", action="store_true", help="confirm the large full-AOI export")
     parser.add_argument("--no-wait", action="store_true", help="start the task and return without polling")
+    parser.add_argument("--download", action="store_true",
+                        help="smoke only: fetch the image straight into data/raw/ instead of exporting to Drive")
     args = parser.parse_args(argv)
+    if args.download and args.region != "smoke":
+        print("--download is only meant for the smoke window.", file=sys.stderr)
+        return 1
 
     cfg = load_config(args.config)
     for key in ("gee_project", "drive_folder"):
@@ -141,9 +178,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     name = f"features_{args.region}_{cfg['year']}"
-    task = start_export(cfg, stack, grid, name)
-    print(f"  task {task.id}: Drive folder '{cfg['drive_folder']}', files {name}*.tif", flush=True)
-
     out_dir = ROOT / "outputs" / "features"
     out_dir.mkdir(parents=True, exist_ok=True)
     band_list = {
@@ -155,6 +189,15 @@ def main(argv: list[str] | None = None) -> int:
         "scale_m": cfg["scale"],
     }
     (out_dir / "band_list.json").write_text(json.dumps(band_list, indent=2), encoding="utf-8")
+
+    image = export_image(cfg, stack)
+    if args.download:
+        paths = download_tiles(image, grid, ROOT / "data" / "raw" / f"{name}_direct")
+        print(f"  {len(paths)} tiles downloaded")
+        return 0
+
+    task = start_export(cfg, image, grid, name)
+    print(f"  task {task.id}: Drive folder '{cfg['drive_folder']}', files {name}*.tif", flush=True)
     export_info = {"task_id": task.id, "name": name, "folder": cfg["drive_folder"],
                    "grid": asdict(grid), "size_gb": round(size_gb, 2)}
     info_path = out_dir / f"{name}.json"
