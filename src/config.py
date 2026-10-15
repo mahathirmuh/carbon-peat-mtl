@@ -11,7 +11,7 @@ DEFAULT_CONFIG = ROOT / "config" / "config.yaml"
 
 REQUIRED_KEYS = (
     "gee_project", "drive_folder", "aoi_bbox", "smoke_bbox", "year", "crs", "scale",
-    "datasets", "assets", "bands", "cs_cdf_threshold", "nodata",
+    "datasets", "assets", "bands", "cs_cdf_threshold", "glcm_size", "dem_lowpass", "export_tile_px", "nodata",
     "patch_size", "block_size_m", "split_ratios", "seed", "lambdas",
     "agc_fraction", "peat_cd_kgc_m3", "temporary_labels", "peat_ignore_index", "peat_classes",
 )
@@ -57,6 +57,9 @@ def validate(cfg: dict[str, Any]) -> None:
         raise ValueError(
             f"block_size_m ({cfg['block_size_m']}) must be a multiple of patch_size * scale ({patch_m} m)"
         )
+
+    if cfg["export_tile_px"] % 256:
+        raise ValueError(f"export_tile_px ({cfg['export_tile_px']}) must be a multiple of 256 (Earth Engine shard size)")
 
     ratios = cfg["split_ratios"]
     if sorted(ratios) != sorted(SPLITS) or abs(sum(ratios.values()) - 1.0) > 1e-6:

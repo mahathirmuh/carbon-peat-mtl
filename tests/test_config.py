@@ -32,6 +32,12 @@ def test_rejects_block_not_aligned_with_patches(cfg):
         validate(cfg)
 
 
+def test_rejects_export_tile_not_multiple_of_256(cfg):
+    cfg["export_tile_px"] = 4000
+    with pytest.raises(ValueError, match="export_tile_px"):
+        validate(cfg)
+
+
 def test_rejects_split_ratios_not_summing_to_one(cfg):
     cfg["split_ratios"]["test"] = 0.25
     with pytest.raises(ValueError, match="split_ratios"):

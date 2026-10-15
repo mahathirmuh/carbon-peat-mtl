@@ -3,7 +3,7 @@
 
 # --- Earth Engine & export ---------------------------------------------------
 gee_project: pcd-research-511612   # Google Cloud project "PCD - Research", registered for Earth Engine
-drive_folder: TODO       # Google Drive folder that receives GEE exports
+drive_folder: carbon-peat-mtl   # Google Drive folder that receives GEE exports
 
 # --- Area, time, grid --------------------------------------------------------
 aoi_bbox: [112.8, -3.4, 113.5, -2.3]        # [lon_min, lat_min, lon_max, lat_max]; Katingan-Mentaya, ~77 x 122 km
@@ -58,6 +58,9 @@ bands:
 
 # --- Preprocessing & export ---------------------------------------------------
 cs_cdf_threshold: 0.60   # Cloud Score+ clear-sky threshold for Sentinel-2
+glcm_size: 3             # glcmTexture neighbourhood on B8 reflectance x 255 as uint8 (as in cek_data_gee.js)
+dem_lowpass: {radius_m: 1500, sigma_m: 500, scale_m: 100}  # Gaussian low-pass of the DSM (dome shape), run on a 100 m grid
+export_tile_px: 4096     # GeoTIFF tile size of Drive exports, in pixels (multiple of 256)
 nodata:                  # applied with unmask() before every export; masked pixels must never become 0
   float32: -9999.0
   int16: -32768
