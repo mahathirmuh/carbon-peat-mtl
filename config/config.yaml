@@ -2,7 +2,7 @@
 # Values come from CLAUDE.md and PLAN.md. Change methodology-related values only after discussion.
 
 # --- Earth Engine & export ---------------------------------------------------
-gee_project: TODO        # Google Cloud project ID registered for Earth Engine
+gee_project: pcd-research-511612   # Google Cloud project "PCD - Research", registered for Earth Engine
 drive_folder: TODO       # Google Drive folder that receives GEE exports
 
 # --- Area, time, grid --------------------------------------------------------

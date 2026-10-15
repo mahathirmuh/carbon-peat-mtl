@@ -30,6 +30,8 @@
 **Angka penting**
 
 - `pytest -q`: 14 passed.
+- `gee/auth_check.py` (project `pcd-research-511612`): earthengine-api 1.7.48, luas AOI 9.509 km², dan ke-13 ID
+  dataset di config terbaca semua (8 ImageCollection, 4 Image, 1 Table). Asset Kementan dan KLHK masih TODO.
 - `scripts/check_block_alignment.py` (grid AOI 7807 × 12181 piksel 10 m, patch 256 piksel, rata-rata 20 seed):
 
 | Ukuran blok | Skema split | Patch terbuang | Patch tersisa train / val / test | Rasio efektif train / val / test |
@@ -58,10 +60,12 @@
    tetapi dari konteksnya (batas bawah 300 cm = batas atas kedalaman peta MoA) yang dimaksud adalah kelas >300 cm.
    Cd 61,6 kg C/m³ untuk Kalimantan Tengah juga cocok dengan Tabel 1 paper.
 
+**Status kriteria Fase 0**
+
+Semua kriteria "Selesai jika" terpenuhi: environment terpasang, Earth Engine terinisialisasi dengan project
+`pcd-research-511612`, dan `pytest -q` berjalan (14 passed). Login Earth Engine dilakukan pada 15 Oktober 2026;
+tokennya tersimpan di profil Windows (`~/.config/earthengine`), bukan di repo.
+
 **Belum selesai**
 
-- **Earth Engine belum terinisialisasi** karena `gee_project` masih TODO. Ini satu-satunya kriteria Fase 0 yang
-  belum terpenuhi. Login (`earthengine authenticate`) sudah dilakukan pada 15 Oktober 2026, dan tokennya tersimpan
-  di profil Windows (`~/.config/earthengine`), bukan di repo. Tinggal mengisi `gee_project` di
-  `config/config.yaml`, lalu menjalankan `python gee/auth_check.py`.
 - `drive_folder` serta path asset Kementan dan KLHK masih TODO.
