@@ -36,6 +36,7 @@ REFERENCE_2020_AOI = {
     "peatgrids_c_stock_mean_mgc_m2": 0.243,
 }
 THUMB_DIM = 1024  # longest side of the quick-look PNGs, in pixels
+LAND_CELL_MIN = 0.5  # a grid cell counts as land when at least half of it is land (ESA WorldCover 2020)
 
 
 def region_value(image: ee.Image, region: ee.Geometry, reducer: ee.Reducer, scale: float) -> ee.ComputedObject:
@@ -59,6 +60,7 @@ def compute_stats(cfg: dict, region: ee.Geometry) -> dict:
             sources.gedi_mosaic(cfg, region, "gedi_l2a").clip(region), region, ee.Reducer.count(), 25),
         "peatgrids_thickness_mean_cm": region_value(thick.clip(region), region, ee.Reducer.mean(), 1000),
         "peatgrids_c_stock_mean_mgc_m2": region_value(c_stock.clip(region), region, ee.Reducer.mean(), 1000),
+        "land_fraction": region_value(sources.land_mask(cfg).clip(region), region, ee.Reducer.mean(), 100),
     }
     stats = {}
     for key, query in queries.items():  # one request each, like the separate print() calls in the JS
@@ -88,16 +90,27 @@ def gedi_per_patch(cfg: dict, region: ee.Geometry, product: str = "gedi_l4a") ->
     """GEDI pixels per patch-sized cell, to judge whether patches carry enough labels.
 
     Cells come from a grid in the working CRS (aligned to the CRS origin, not to the future patch grid) and
-    only cells fully inside the region are counted.
+    only cells fully inside the region are counted. Sea cells can never hold GEDI land footprints, so the
+    distribution is also reported for land cells only.
     """
     cell_m = cfg["patch_size"] * cfg["scale"]
     cells = region.coveringGrid(ee.Projection(cfg["crs"]), cell_m).filter(ee.Filter.isContained(".geo", region))
-    gedi = sources.gedi_mosaic(cfg, region, product)
-    counts = gedi.reduceRegions(collection=cells, reducer=ee.Reducer.count(), scale=25, tileScale=4)
+    cells = sources.land_mask(cfg).reduceRegions(
+        collection=cells, reducer=ee.Reducer.mean().setOutputs(["land"]), scale=100)
+    cells = sources.gedi_mosaic(cfg, region, product).reduceRegions(
+        collection=cells, reducer=ee.Reducer.count(), scale=25, tileScale=4)
     t0 = time.time()
-    stats = {"product": product, "cell_size_m": cell_m,
-             **count_distribution(counts.aggregate_array("count").getInfo())}
-    print(f"  {product}_per_patch{'':<13} {stats}  ({time.time() - t0:.0f} s)")
+    rows = cells.reduceColumns(ee.Reducer.toList(2), ["count", "land"]).get("list").getInfo()
+    stats = {
+        "product": product,
+        "cell_size_m": cell_m,
+        "land_cell_min": LAND_CELL_MIN,
+        "all_cells": count_distribution([int(count) for count, _ in rows]),
+        "land_cells": count_distribution(
+            [int(count) for count, land in rows if land is not None and land >= LAND_CELL_MIN]),
+    }
+    print(f"  {product}_per_patch  all {stats['all_cells']}")
+    print(f"  {product}_per_patch  land {stats['land_cells']}  ({time.time() - t0:.0f} s)")
     return stats
 
 

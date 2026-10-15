@@ -94,6 +94,12 @@ def gedi_mosaic(cfg: dict, region: ee.Geometry, product: str) -> ee.Image:
     )
 
 
+def land_mask(cfg: dict) -> ee.Image:
+    """1 on land, 0 on water and sea, from ESA WorldCover 2020 (class 80 = permanent water; no data = sea)."""
+    worldcover = ee.ImageCollection(cfg["datasets"]["esa_worldcover"]).first().select("Map")
+    return worldcover.neq(80).unmask(0).rename("land")
+
+
 def peatgrids(cfg: dict) -> tuple[ee.Image, ee.Image]:
     """PEATGRIDS mean thickness (cm) and carbon stock (Mg C/m2), with negative values masked."""
     thick = ee.Image(cfg["datasets"]["peatgrids_thickness"]).select("THICKNESS_CM_MEAN")
