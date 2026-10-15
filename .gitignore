@@ -1,0 +1,12 @@
+# Data and outputs are never committed (see CLAUDE.md)
+data/
+outputs/
+*.tif
+*.tiff
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
