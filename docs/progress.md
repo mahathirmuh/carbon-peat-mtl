@@ -69,3 +69,71 @@ tokennya tersimpan di profil Windows (`~/.config/earthengine`), bukan di repo.
 **Belum selesai**
 
 - `drive_folder` serta path asset Kementan dan KLHK masih TODO.
+
+## Fase 1 — Cek dan eksplorasi data (15 Oktober 2026)
+
+**Dibuat**
+
+- `gee/sources.py`: modul bersama untuk sumber data Earth Engine, yaitu Sentinel-2 + Cloud Score+, Sentinel-1,
+  PALSAR-2 (DN → dB), Copernicus DEM, GEDI L4A/L2A dengan filter kualitas, PEATGRIDS, dan masker daratan dari ESA
+  WorldCover 2020. Filternya sama dengan `gee/cek_data_gee.js`, dan modul ini dipakai lagi di Fase 2 dan 3 supaya
+  cek data, stack fitur, dan label memakai citra yang sama.
+- `gee/check_data.py`: versi Python dari `cek_data_gee.js`, ditambah fraksi daratan AOI, sebaran titik GEDI per sel
+  seukuran patch, dan quick-look PNG (`s2_rgb`, `s1_vh`, `palsar2_hv`, `dem`, `gedi_l4a`). Output AOI penuh ada di
+  `outputs/data_check/`, sedangkan smoke test di `outputs/data_check/smoke/`.
+- Tes: `tests/test_check_data.py`. Total `pytest -q`: 17 passed.
+
+**Angka penting** (AOI penuh, 2020, dari `outputs/data_check/summary.json`)
+
+| Data | Hasil Python | Acuan CLAUDE.md (skrip JS) | Selisih |
+|---|---|---|---|
+| Citra Sentinel-2 | 365 | 365 | 0 |
+| Fraksi AOI tertutup komposit Sentinel-2 | 0,9991 | 0,999 | +0,01% |
+| Citra Sentinel-1 (IW, VV + VH) | 48 | 48 | 0 |
+| Mosaik PALSAR-2 | 1 | 1 | 0 |
+| Piksel GEDI L4A lolos filter kualitas | 111.610 | 111.610 | 0 |
+| Piksel GEDI L2A lolos filter kualitas | 162.131 | 162.131 | 0 |
+| PEATGRIDS, tebal rata-rata (cm) | 275,08 | 275 | +0,03% |
+| PEATGRIDS, stok karbon rata-rata (Mg C/m²) | 0,2428 | 0,243 | −0,07% |
+
+Semua angka sama dengan acuan. Selisih kecil hanya karena angka di CLAUDE.md dibulatkan, jadi tidak ada selisih
+besar yang perlu dijelaskan. Cara hitung "titik GEDI": jumlah piksel 25 m yang berisi minimal satu footprint lolos
+filter kualitas setelah 12 citra bulanan di-mosaic. Footprint dari bulan berbeda yang jatuh di piksel yang sama
+hanya terhitung sekali.
+
+Tambahan yang tidak ada di skrip JS:
+
+- Fraksi daratan AOI: 0,775. Artinya ±22,5% AOI berupa laut dan perairan (Laut Jawa dan muara Mentaya–Katingan).
+- Piksel GEDI L4A per sel 2,56 km (seukuran patch). Sel diambil dari grid EPSG:32749 dan hanya sel yang seluruhnya
+  di dalam AOI yang dihitung:
+
+| Sel | Jumlah sel | Sel yang punya GEDI | Median piksel GEDI per sel | Persentil 90 |
+|---|---|---|---|---|
+| Semua | 1.334 | 67,7% | 34 | 213 |
+| Daratan (≥ 50% darat) | 1.053 | 83,7% | 78 | 237 |
+
+- Smoke test (jendela 11 × 11 km): 144 citra Sentinel-2, 24 citra Sentinel-1, 2.887 piksel L4A, 3.390 piksel L2A,
+  100% daratan, dan ke-12 sel punya GEDI (median 166).
+
+**Penilaian: apakah titik GEDI cukup untuk training?**
+
+Cukup, sehingga config tidak diubah. Ada 111.610 footprint L4A berkualitas yang tersebar di 83,7% sel daratan, dengan
+median 78 footprint per sel. Sekitar 16% sel daratan tidak punya GEDI karena celah antar-jalur orbit dan footprint
+yang tersaring kualitasnya. Sel seperti itu tetap berguna untuk Head 3 (label gambut padat) di training multi-task;
+loss tinggi dan AGB-nya otomatis tidak dihitung karena masked loss. Opsi menambah tahun 2021–2022 atau memperluas AOI
+baru perlu dibahas kalau jumlah titik GEDI di split val/test (Fase 4) ternyata terlalu sedikit.
+
+**Temuan untuk fase berikutnya**
+
+- AOI memuat ±22,5% laut dan perairan. Sebelum ekspor Fase 2 perlu diputuskan: (a) bbox tetap, piksel air diberi
+  nodata, dan patch yang sebagian besar air dibuang di Fase 4; (b) batas selatan bbox dipotong; atau (c) AOI diganti
+  poligon daratan. Usulan: (a), karena paling sederhana dan tidak mengubah AOI di CLAUDE.md.
+- Quick-look DEM memperlihatkan kubah gambut dengan jelas di antara S. Mentaya dan S. Katingan. Ini mendukung kanal
+  elevasi low-pass.
+- Masker daratan (`sources.land_mask`) siap dipakai untuk menyaring patch di Fase 4.
+
+**Keputusan**
+
+- Ditambahkan metrik sebaran GEDI per sel seukuran patch dan masker daratan ESA WorldCover. Tujuannya agar kecukupan
+  label dinilai tanpa terpengaruh sel laut.
+- Config tidak diubah: AOI, tahun, dan filter GEDI tetap.
