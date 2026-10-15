@@ -183,7 +183,7 @@ python src/evaluate.py --config config/config.yaml --run outputs/runs/<nama_run>
 - Folder Google Drive tujuan ekspor: `TODO`
 - Lingkungan GPU (Colab / server lab): `TODO`
 - Path asset peta gambut Kementan dan peta KLHK setelah di-upload: `TODO`
-- Repo remote (mis. GitHub privat) untuk di-clone di Colab pada Fase 6: `TODO`
+- Repo remote untuk di-clone di Colab pada Fase 6: https://github.com/mahathirmuh/carbon-peat-mtl
 
 ## Referensi kunci
 

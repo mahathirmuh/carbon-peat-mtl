@@ -4,8 +4,9 @@
 
 **Dibuat**
 
-- Repo git lokal. File awal (CLAUDE.md, PLAN.md, dua skrip `.js`) menjadi baseline di branch `main`.
-  Pekerjaan Fase 0 ada di branch `fase-0` dan di-merge ke `main` setelah disetujui.
+- Repo git, remote di https://github.com/mahathirmuh/carbon-peat-mtl. File awal (CLAUDE.md, PLAN.md, dua skrip
+  `.js`) menjadi baseline di branch `main`. Pekerjaan Fase 0 ada di branch `fase-0` dan di-merge ke `main`
+  setelah disetujui.
 - Struktur folder sesuai CLAUDE.md, `.gitignore`, `.gitattributes` (akhir baris LF supaya sama di Windows dan
   Colab), `README.md`, `environment.yml`, `pytest.ini`.
 - `config/config.yaml`: AOI, jendela smoke test, tahun, CRS, skala, semua ID dataset, urutan 19 band, ambang
@@ -63,4 +64,4 @@
   belum terpenuhi. Login (`earthengine authenticate`) sudah dilakukan pada 15 Oktober 2026, dan tokennya tersimpan
   di profil Windows (`~/.config/earthengine`), bukan di repo. Tinggal mengisi `gee_project` di
   `config/config.yaml`, lalu menjalankan `python gee/auth_check.py`.
-- `drive_folder`, path asset Kementan dan KLHK, serta repo remote GitHub masih TODO.
+- `drive_folder` serta path asset Kementan dan KLHK masih TODO.
