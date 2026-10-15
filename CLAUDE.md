@@ -77,7 +77,9 @@ Rencana kerja per fase ada di `PLAN.md`. Arti semua singkatan ada di bagian **Si
 6. **Konversi karbon:** AGC = AGB × 0,47 (IPCC). SOC = kedalaman × Cd × luas, dengan Cd = BD × C-organik
    = **61,6 kg C/m³** untuk Kalimantan Tengah (Warren et al., 2017, Tabel 1). Kedalaman per kelas mengikuti
    Warren et al. (2017): rendah = batas bawah, tengah = nilai tengah, tinggi = batas atas; kelas terbuka
-   >300 cm = 300 / 750 / 1000 cm. Laporkan SOC versi tengah beserta rentang rendah–tinggi.
+   >300 cm = 300 / 750 / 1000 cm (750 = titik tengah 300–1200 cm, yaitu batas bawah kelas terdalam peta MoA
+   sampai batas atas kelas terdalam peta WI Kalimantan; 1000 = titik tengah kelas WI 800–1200 cm).
+   Laporkan SOC versi tengah beserta rentang rendah–tinggi.
    PEATGRIDS sebagai pembanding SOC, kecuali bila dipakai sebagai label sementara Head 3 (hindari evaluasi sirkular).
 7. **Peta penutupan lahan KLHK** hanya untuk strata analisis (ringkasan per tipe vegetasi), bukan target model.
 8. **Validasi independen:** rata-rata AGB di area beririsan vs Umarhadi et al. (2026) = 239,9 t/ha.

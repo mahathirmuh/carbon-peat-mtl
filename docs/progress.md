@@ -50,12 +50,17 @@
    (`VH_minus_VV`, `HH_dB`, `HV_dB`, `B8_contrast`, `B8_ent`, `B8_var`).
 4. `seed` = 42. `peat_ignore_index` = 255, yaitu nilai nodata pada label gambut yang diabaikan cross-entropy.
    `temporary_labels: true` selama label Head 3 berasal dari PEATGRIDS.
+5. Kedalaman kelas >300 cm (3 / 7,5 / 10 m) dicek ke Warren et al. (2017), bagian Methods: "values of 300, 750,
+   and 1000 were used for low, medium and high estimates". Nilai 750 cm adalah titik tengah 300–1200 cm (batas
+   bawah kelas terdalam peta MoA sampai batas atas kelas terdalam peta WI Kalimantan), dan 1000 cm adalah titik
+   tengah kelas WI 800–1200 cm. Jadi 7,5 m benar dan tidak diubah. Di paper tertulis "In the >200 cm depth class",
+   tetapi dari konteksnya (batas bawah 300 cm = batas atas kedalaman peta MoA) yang dimaksud adalah kelas >300 cm.
+   Cd 61,6 kg C/m³ untuk Kalimantan Tengah juga cocok dengan Tabel 1 paper.
 
 **Belum selesai**
 
 - **Earth Engine belum terinisialisasi** karena `gee_project` masih TODO. Ini satu-satunya kriteria Fase 0 yang
-  belum terpenuhi. Langkahnya: isi `gee_project` di `config/config.yaml`, jalankan `earthengine authenticate`
-  sekali (login lewat browser), lalu `python gee/auth_check.py`.
-- Nilai tengah kelas >300 cm (7,5 m) perlu dicek ke Warren et al. (2017), karena titik tengah 3–10 m adalah 6,5 m.
-  Sudah ditandai TODO di config.
+  belum terpenuhi. Login (`earthengine authenticate`) sudah dilakukan pada 15 Oktober 2026, dan tokennya tersimpan
+  di profil Windows (`~/.config/earthengine`), bukan di repo. Tinggal mengisi `gee_project` di
+  `config/config.yaml`, lalu menjalankan `python gee/auth_check.py`.
 - `drive_folder`, path asset Kementan dan KLHK, serta repo remote GitHub masih TODO.

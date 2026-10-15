@@ -86,5 +86,6 @@ peat_classes:
   1: {name: d050_100,  min_cm: 50,  max_cm: 100,  depth_m: {low: 0.5, mid: 0.75, high: 1.0}}
   2: {name: d100_200,  min_cm: 100, max_cm: 200,  depth_m: {low: 1.0, mid: 1.5,  high: 2.0}}
   3: {name: d200_300,  min_cm: 200, max_cm: 300,  depth_m: {low: 2.0, mid: 2.5,  high: 3.0}}
-  # TODO: verify mid 7.5 m against Warren et al. (2017); the midpoint of 3-10 m would be 6.5 m
+  # Open class, Warren et al. (2017) Methods: low 3 m = MoA lower bound; mid 7.5 m = midpoint of 3-12 m
+  # (MoA minimum to the maximum of the deepest WI Kalimantan class); high 10 m = midpoint of the WI 8-12 m class.
   4: {name: d300_plus, min_cm: 300, max_cm: null, depth_m: {low: 3.0, mid: 7.5,  high: 10.0}}
